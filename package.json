@@ -1,0 +1,20 @@
+{
+  "name": "organic-shop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "install:all": "npm --prefix backend install && npm --prefix frontend install && npm --prefix admin install && npm --prefix mobile install",
+    "setup:db": "npm --prefix backend run migrate:deploy && npm --prefix backend run seed",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:admin": "npm --prefix admin run dev",
+    "dev:mobile": "npm --prefix mobile start",
+    "dev": "concurrently -n api,shop,admin -c green,cyan,yellow \"npm:dev:backend\" \"npm:dev:frontend\" \"npm:dev:admin\"",
+    "build": "npm --prefix frontend run build && npm --prefix admin run build",
+    "verify": "npm --prefix frontend run build && npm --prefix admin run build && npm --prefix mobile run typecheck"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
