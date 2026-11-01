@@ -105,7 +105,7 @@ export function AdminLayout() {
           <button onClick={() => setOpen(true)} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 lg:hidden"><Menu className="h-5 w-5" /></button>
           <Link to="/" className="flex items-center gap-1 text-sm font-semibold text-slate-700 lg:hidden"><ChevronLeft className="h-4 w-4" /> Dashboard</Link>
           <div className="ml-auto flex items-center gap-3">
-            <a href="http://localhost:5173" target="_blank" rel="noreferrer" className="hidden rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 sm:block">View store</a>
+            <a href="https://organic-shop-two.vercel.app" target="_blank" rel="noreferrer" className="hidden rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 sm:block">View store</a>
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-leaf-100 text-xs font-bold text-leaf-800">{user?.name?.charAt(0) || "A"}</span>
           </div>
         </header>
