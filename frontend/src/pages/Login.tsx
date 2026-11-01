@@ -68,10 +68,10 @@ export function Login() {
           <p className="mt-6 text-center text-sm text-stone-500">
             {t("login.noAccount")} <Link to={`/register${redirect !== "/account" ? `?redirect=${encodeURIComponent(redirect)}` : ""}`} className="font-semibold text-leaf-700 hover:text-leaf-900">{t("login.create")}</Link>
           </p>
-          <div className="mt-8 rounded-2xl border border-stone-200 bg-cream-100 p-4 text-xs text-stone-500">
+          {/* <div className="mt-8 rounded-2xl border border-stone-200 bg-cream-100 p-4 text-xs text-stone-500">
             <p className="font-semibold text-stone-700">{lang === "bn" ? "ডেমো অ্যাকাউন্ট" : "Demo account"}</p>
             <p className="mt-1">customer@organic.test / Customer123!</p>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

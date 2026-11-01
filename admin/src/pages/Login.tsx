@@ -59,10 +59,10 @@ export function Login() {
             {error && <p className="rounded-lg bg-rose-50 px-3 py-2.5 text-sm text-rose-700">{error}</p>}
             <button disabled={busy} className="btn-primary w-full">{busy ? "Signing in..." : "Sign in"}</button>
           </form>
-          <div className="mt-5 rounded-xl bg-slate-50 p-3 text-xs text-slate-500">
+          {/* <div className="mt-5 rounded-xl bg-slate-50 p-3 text-xs text-slate-500">
             <p className="font-semibold text-slate-700">Demo admin</p>
             <p className="mt-1">admin@organic.test / Admin123!</p>
-          </div>
+          </div> */}
         </div>
       </div>
     </div>
