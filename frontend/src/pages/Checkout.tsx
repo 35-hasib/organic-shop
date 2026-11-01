@@ -79,8 +79,7 @@ export function Checkout() {
     }
   };
 
-  const placeOrder = async (event: React.FormEvent) => {
-    event.preventDefault();
+  const placeOrder = async () => {
     setError("");
     if (!addressId || !areaId) {
       setError(t("checkout.noAddress"));
@@ -122,7 +121,7 @@ export function Checkout() {
   return (
     <div>
       <PageHeader title={t("checkout.title")} subtitle={lang === "bn" ? "ঠিকানা নিশ্চিত করুন এবং অর্ডার সম্পন্ন করুন।" : "Confirm your delivery details and place the order."} />
-      <form onSubmit={placeOrder} className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8">
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8">
         <div className="space-y-8">
           <section>
             <div className="mb-4 flex items-center justify-between">
@@ -221,10 +220,10 @@ export function Checkout() {
             <div className="flex justify-between border-t border-stone-200 pt-3 text-base font-bold"><dt>{t("common.total")}</dt><dd>{money(total)}</dd></div>
           </dl>
           {error && <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
-          <button disabled={placing || !addressId || !areaId} className="btn-primary mt-5 w-full">{placing ? t("common.loading") : t("checkout.placeOrder")}</button>
+          <button type="button" onClick={placeOrder} disabled={placing || !addressId || !areaId} className="btn-primary mt-5 w-full">{placing ? t("common.loading") : t("checkout.placeOrder")}</button>
           <p className="mt-3 text-center text-[11px] text-stone-500">{t("checkout.terms")}</p>
         </aside>
-      </form>
+      </div>
     </div>
   );
 }
