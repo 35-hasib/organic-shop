@@ -22,7 +22,7 @@ export function AccountLayout() {
         <p className="mt-1 text-sm text-stone-500">{user?.name} · {user?.email || user?.phone}</p>
       </div>
       <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
-        <aside>
+        <aside className="min-w-0">
           <nav className="flex gap-2 overflow-x-auto rounded-2xl border border-stone-200 bg-white p-2 lg:flex-col lg:overflow-visible">
             {links.map((link) => (
               <NavLink

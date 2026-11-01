@@ -134,12 +134,12 @@ export function ProductDetail() {
             {off > 0 && <span className="absolute left-4 top-4 rounded-full bg-clay-500 px-3 py-1.5 text-sm font-bold text-white">-{off}%</span>}
           </div>
           {product.images.length > 1 && (
-            <div className="mt-3 flex gap-3">
+            <div className="mt-3 flex gap-3 overflow-x-auto pb-1">
               {product.images.map((image, index) => (
                 <button
                   key={`${image}-${index}`}
                   onClick={() => setActiveImage(index)}
-                  className={`h-20 w-20 overflow-hidden rounded-xl border-2 ${activeImage === index ? "border-leaf-600" : "border-transparent"}`}
+                  className={`h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 ${activeImage === index ? "border-leaf-600" : "border-transparent"}`}
                 >
                   <img src={image} alt="" className="h-full w-full object-cover" />
                 </button>

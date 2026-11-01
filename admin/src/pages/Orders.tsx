@@ -76,7 +76,7 @@ export function Orders() {
         </Select>
         <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} className="input" />
         <div className="flex gap-2">
-          <input type="date" value={to} onChange={(event) => setTo(event.target.value)} className="input" />
+          <input type="date" value={to} onChange={(event) => setTo(event.target.value)} className="input min-w-0 flex-1" />
           <button onClick={() => { setPage(1); load(); }} className="btn-primary shrink-0">Filter</button>
         </div>
       </div>

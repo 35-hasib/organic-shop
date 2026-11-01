@@ -168,7 +168,7 @@ export function Shop() {
                   {products.map((product) => <ProductCard key={product.id} product={product} />)}
                 </div>
                 {pageCount > 1 && (
-                  <div className="mt-10 flex items-center justify-center gap-2">
+                  <div className="mt-10 flex flex-wrap items-center justify-center gap-2">
                     <button disabled={page <= 1} onClick={() => setParam("page", String(page - 1))} className="rounded-full border border-stone-300 px-4 py-2 text-sm disabled:opacity-40">
                       {lang === "bn" ? "পূর্ববর্তী" : "Previous"}
                     </button>

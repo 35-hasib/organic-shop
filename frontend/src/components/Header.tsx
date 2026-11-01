@@ -44,11 +44,11 @@ export function Header() {
           <button className="lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu">
             <Menu className="h-6 w-6 text-stone-700" />
           </button>
-          <Link to="/" className="flex shrink-0 items-center gap-2">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-leaf-700 text-cream-50">
+          <Link to="/" className="flex min-w-0 items-center gap-2">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-leaf-700 text-cream-50">
               <Leaf className="h-5 w-5" />
             </span>
-            <span className="font-display text-xl font-semibold tracking-tight text-leaf-900 sm:text-2xl">{storeName}</span>
+            <span className="truncate font-display text-xl font-semibold tracking-tight text-leaf-900 sm:text-2xl">{storeName}</span>
           </Link>
 
           <nav className="ml-4 hidden items-center gap-7 lg:flex">

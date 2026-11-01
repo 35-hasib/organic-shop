@@ -91,9 +91,9 @@ export function Pagination({ page, pageSize, total, onPage }: { page: number; pa
   const pages = Math.max(1, Math.ceil(total / pageSize));
   if (pages <= 1) return null;
   return (
-    <div className="mt-5 flex items-center justify-between gap-3 text-sm text-slate-500">
+    <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
       <span>{total} records</span>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button disabled={page <= 1} onClick={() => onPage(page - 1)} className="rounded-lg border border-slate-300 px-3 py-1.5 font-medium text-slate-600 disabled:opacity-40">Previous</button>
         <span>Page {page} of {pages}</span>
         <button disabled={page >= pages} onClick={() => onPage(page + 1)} className="rounded-lg border border-slate-300 px-3 py-1.5 font-medium text-slate-600 disabled:opacity-40">Next</button>
