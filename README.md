@@ -142,7 +142,6 @@ The Android emulator defaults to `http://10.0.2.2:4100/api`; iOS and web default
 
 | Role | Email | Phone | Password |
 | --- | --- | --- | --- |
-| Admin | `admin@organic.test` | `01700000001` | `Admin123!` |
 | Customer | `customer@organic.test` | `01700000002` | `Customer123!` |
 | Customer | `nusrat@organic.test` | `01700000003` | `Customer123!` |
 
