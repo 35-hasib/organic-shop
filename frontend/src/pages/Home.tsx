@@ -114,7 +114,7 @@ export function Home() {
           {categories.map((category, index) => (
             <Link
               key={category.id}
-              to={`/shop?category=${category.slug}`}
+              to={`/category/${category.slug}`}
               className={`group relative overflow-hidden rounded-2xl p-4 ${index === 0 ? "col-span-2 sm:col-span-1" : ""}`}
             >
               <div className="absolute inset-0 bg-cream-200 transition group-hover:bg-cream-300" />

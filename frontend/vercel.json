@@ -1,5 +1,10 @@
 {
+  "trailingSlash": false,
+  "redirects": [
+    { "source": "/shop/index.html", "destination": "/shop", "permanent": true }
+  ],
   "rewrites": [
+    { "source": "/shop", "destination": "/shop/index.html" },
     { "source": "/sitemap.xml", "destination": "/api/sitemap" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]

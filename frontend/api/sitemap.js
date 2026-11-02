@@ -132,7 +132,7 @@ export default async function handler(_req, res) {
 
     for (const category of categories) {
       if (!category?.slug || category.active === false) continue;
-      add(`/shop?category=${encodeURIComponent(category.slug)}`, lastModified(category.updatedAt));
+      add(`/category/${encodeURIComponent(category.slug)}`, lastModified(category.updatedAt));
     }
 
     for (const product of products) {

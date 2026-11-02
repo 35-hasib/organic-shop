@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { SlidersHorizontal, X } from "lucide-react";
 import { api, errorMessage } from "../lib/api";
 import type { Category, Product } from "../types";
@@ -9,9 +9,12 @@ import { Select } from "../components/Select";
 import { PageHeader } from "../components/PageHeader";
 import { EmptyState, ErrorState, Loading } from "../components/Loading";
 import { SectionHeading } from "../components/SectionHeading";
+import { Seo } from "../lib/seo";
 
 export function Shop() {
   const { t, lang, pick } = useLanguage();
+  const { slug: routeCategory } = useParams();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -23,7 +26,7 @@ export function Shop() {
   const query = params.toString();
   const page = Number(params.get("page") || 1);
   const pageSize = 12;
-  const selectedCategory = params.get("category") || "";
+  const selectedCategory = routeCategory || params.get("category") || "";
   const sort = params.get("sort") || "newest";
   const q = params.get("q") || "";
   const inStock = params.get("inStock") === "1";
@@ -41,6 +44,8 @@ export function Shop() {
     setLoading(true);
     setError("");
     const search = new URLSearchParams(query);
+    search.delete("category");
+    if (selectedCategory) search.set("category", selectedCategory);
     search.set("pageSize", String(pageSize));
     api<{ products: Product[]; total: number }>(`/products?${search.toString()}`, { auth: false })
       .then((data) => {
@@ -53,13 +58,20 @@ export function Shop() {
     return () => {
       active = false;
     };
-  }, [query]);
+  }, [query, selectedCategory]);
 
   const setParam = (key: string, value: string | null) => {
     const next = new URLSearchParams(params);
     if (!value) next.delete(key);
     else next.set(key, value);
     if (key !== "page") next.delete("page");
+    if (key === "category") {
+      next.delete("category");
+      const suffix = next.toString();
+      if (value) navigate(`/category/${encodeURIComponent(value)}${suffix ? `?${suffix}` : ""}`);
+      else navigate(`/shop${suffix ? `?${suffix}` : ""}`);
+      return;
+    }
     setParams(next);
   };
 
@@ -78,13 +90,26 @@ export function Shop() {
   const clearFilters = () => {
     const next = new URLSearchParams();
     if (q) next.set("q", q);
-    setParams(next);
+    const suffix = next.toString();
+    if (selectedCategory) navigate(`/category/${encodeURIComponent(selectedCategory)}${suffix ? `?${suffix}` : ""}`);
+    else setParams(next);
   };
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const activeCount = [selectedCategory, inStock, minPrice, maxPrice].filter(Boolean).length;
   const title = q ? `${lang === "bn" ? "অনুসন্ধান" : "Search"}: ${q}` : t("shop.title");
   const flatCategories = useMemo(() => categories, [categories]);
+  const activeCategory = flatCategories.find((category) => category.slug === selectedCategory);
+  const canonicalCategory = routeCategory || params.get("category") || "";
+  const canonicalPath = canonicalCategory ? `/category/${encodeURIComponent(canonicalCategory)}` : "/shop";
+  const seoTitle = activeCategory
+    ? `${pick(activeCategory, "name")} | Organic Shop`
+    : q
+      ? `${lang === "bn" ? "অনুসন্ধান" : "Search"}: ${q} | Organic Shop`
+      : "Shop Organic Food Online in Bangladesh | Organic Shop";
+  const seoDescription = activeCategory
+    ? `Shop ${pick(activeCategory, "name")} online in Bangladesh. Fresh, carefully sourced organic products from trusted farms, delivered nationwide by Organic Shop.`
+    : "Shop organic honey, deshi ghee, cold-pressed oils, spices, rice, lentils, fruits, vegetables and herbal tea from trusted Bangladeshi farms.";
 
   const filters = (
     <div className="space-y-6">
@@ -129,8 +154,26 @@ export function Shop() {
 
   return (
     <div>
-      <PageHeader title={title} subtitle={t("shop.subtitle")} />
+      <Seo title={seoTitle} description={seoDescription} canonicalPath={canonicalPath} />
+      <PageHeader title={activeCategory ? pick(activeCategory, "name") : title} subtitle={activeCategory ? pick(activeCategory, "description") || t("shop.subtitle") : t("shop.subtitle")} />
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        {!routeCategory && !params.get("category") && !q && !inStock && !minPrice && !maxPrice && (
+          <section className="mb-10 rounded-3xl border border-stone-200 bg-cream-50 p-6 sm:p-8">
+            <h2 className="font-display text-2xl text-stone-900 sm:text-3xl">{t("shop.introTitle")}</h2>
+            <p className="mt-3 max-w-4xl leading-relaxed text-stone-600">{t("shop.introText")}</p>
+            <p className="mt-3 max-w-4xl leading-relaxed text-stone-600">{t("shop.introText2")}</p>
+            <p className="mt-5 text-sm font-semibold text-stone-700">{t("shop.browseCategories")}</p>
+            <ul className="mt-3 flex flex-wrap gap-2 text-sm">
+              {flatCategories.map((category) => (
+                <li key={category.id}>
+                  <Link to={`/category/${category.slug}`} className="inline-block rounded-full border border-stone-300 px-4 py-1.5 text-stone-700 hover:border-leaf-600 hover:text-leaf-700">
+                    {pick(category, "name")}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-stone-500">{total} {t("shop.results")}</p>
           <div className="flex items-center gap-2">

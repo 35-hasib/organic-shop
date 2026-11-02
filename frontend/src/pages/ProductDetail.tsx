@@ -120,7 +120,7 @@ export function ProductDetail() {
         {product.category && (
           <>
             <ChevronRight className="h-3 w-3" />
-            <Link to={`/shop?category=${product.category.slug}`} className="hover:text-leaf-700">{pick(product.category, "name")}</Link>
+            <Link to={`/category/${product.category.slug}`} className="hover:text-leaf-700">{pick(product.category, "name")}</Link>
           </>
         )}
         <ChevronRight className="h-3 w-3" />
