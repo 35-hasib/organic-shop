@@ -2,21 +2,46 @@ import { Link } from "react-router-dom";
 import { useLanguage } from "../context/LanguageContext";
 import { useSettings } from "../context/SettingsContext";
 import { PageHeader } from "../components/PageHeader";
+import { useSeo } from "../lib/seo";
 
 type InfoKind = "about" | "faq" | "returns" | "privacy" | "terms";
 
 const titles: Record<InfoKind, [string, string]> = {
-  about: ["About Organic Shop", "অর্গানিক শপ সম্পর্কে"],
-  faq: ["Frequently asked questions", "সাধারণ জিজ্ঞাসা"],
+  about: ["About Organic Shop Bangladesh", "অর্গানিক শপ বাংলাদেশ সম্পর্কে"],
+  faq: ["Frequently Asked Questions", "সাধারণ জিজ্ঞাসা"],
   returns: ["Returns & refunds", "ফেরত ও রিফান্ড"],
   privacy: ["Privacy policy", "গোপনীয়তা নীতি"],
   terms: ["Terms of service", "সেবার শর্তাবলী"],
+};
+
+const seo: Record<InfoKind, { title: string; description: string }> = {
+  about: {
+    title: "About Organic Shop | Our Story and Mission",
+    description: "Learn about Organic Shop Bangladesh, our story, mission and the farmers and producers behind our pure honey, deshi ghee, gur, doi, dudh and organic food.",
+  },
+  faq: {
+    title: "Frequently Asked Questions | Organic Shop Bangladesh",
+    description: "Find answers about ordering organic food from Organic Shop Bangladesh, nationwide delivery, payment, returns, product sourcing and storage.",
+  },
+  returns: {
+    title: "Returns and Refunds | Organic Shop Bangladesh",
+    description: "Read the Organic Shop Bangladesh returns and refund policy for damaged, missing or incorrect organic food orders and how to contact support.",
+  },
+  privacy: {
+    title: "Privacy Policy | Organic Shop Bangladesh",
+    description: "Learn how Organic Shop Bangladesh collects, uses and protects your personal information when you shop, create an account or contact us.",
+  },
+  terms: {
+    title: "Terms of Service | Organic Shop Bangladesh",
+    description: "Read the terms of service for using Organic Shop Bangladesh, including orders, pricing, delivery, payments, accounts and website use.",
+  },
 };
 
 export function InfoPage({ kind }: { kind: InfoKind }) {
   const { lang } = useLanguage();
   const settings = useSettings();
   const title = titles[kind][lang === "bn" ? 1 : 0];
+  useSeo({ ...seo[kind], canonicalPath: `/${kind}` });
   const settingKey = kind === "returns" ? "returnPolicy" : kind === "about" ? "aboutUs" : kind;
   const text = (lang === "bn" ? settings[`${settingKey}Bn`] : settings[settingKey]) || "";
   let faqs: { q: string; a: string }[] = [];

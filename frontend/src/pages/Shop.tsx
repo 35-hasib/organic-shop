@@ -103,13 +103,13 @@ export function Shop() {
   const canonicalCategory = routeCategory || params.get("category") || "";
   const canonicalPath = canonicalCategory ? `/category/${encodeURIComponent(canonicalCategory)}` : "/shop";
   const seoTitle = activeCategory
-    ? `${pick(activeCategory, "name")} | Organic Shop`
+    ? `Buy ${pick(activeCategory, "name")} Online in Bangladesh | Organic Shop`
     : q
-      ? `${lang === "bn" ? "অনুসন্ধান" : "Search"}: ${q} | Organic Shop`
+      ? `${lang === "bn" ? "অনুসন্ধান" : "Search"}: ${q} | Organic Shop Bangladesh`
       : "Shop Organic Food Online in Bangladesh | Organic Shop";
   const seoDescription = activeCategory
-    ? `Shop ${pick(activeCategory, "name")} online in Bangladesh. Fresh, carefully sourced organic products from trusted farms, delivered nationwide by Organic Shop.`
-    : "Shop organic honey, deshi ghee, cold-pressed oils, spices, rice, lentils, fruits, vegetables and herbal tea from trusted Bangladeshi farms.";
+    ? `Buy ${pick(activeCategory, "name")} online from Organic Shop Bangladesh. Carefully sourced organic food from trusted farms, delivered nationwide with clear product details.`
+    : "Shop organic food online at Organic Shop Bangladesh for pure honey, deshi ghee, gur, cold-pressed oils, spices, rice, lentils, fruits, vegetables and herbal tea with nationwide delivery.";
 
   const filters = (
     <div className="space-y-6">

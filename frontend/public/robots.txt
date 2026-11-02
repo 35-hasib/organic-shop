@@ -1,10 +1,19 @@
 User-agent: *
 Allow: /
+Allow: /favicon.ico
+Allow: /favicon.png
+Allow: /apple-touch-icon.png
 Disallow: /account
 Disallow: /cart
 Disallow: /checkout
 Disallow: /login
 Disallow: /register
 Disallow: /wishlist
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
 
 Sitemap: https://organic-shop-two.vercel.app/sitemap.xml

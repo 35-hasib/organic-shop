@@ -4,6 +4,7 @@ import { api, errorMessage } from "../lib/api";
 import { useLanguage } from "../context/LanguageContext";
 import { useSettings } from "../context/SettingsContext";
 import { PageHeader } from "../components/PageHeader";
+import { useSeo } from "../lib/seo";
 
 export function Contact() {
   const { t, lang } = useLanguage();
@@ -12,6 +13,11 @@ export function Contact() {
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  useSeo({
+    title: "Contact Organic Shop | Get in Touch",
+    description: "Contact Organic Shop Bangladesh for help with organic food orders, product questions, delivery, payments or bulk enquiries. Call, email or send us a message.",
+    canonicalPath: "/contact",
+  });
 
   const update = (key: keyof typeof form) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((current) => ({ ...current, [key]: event.target.value }));

@@ -11,6 +11,7 @@ import { discountPercent, money } from "../lib/format";
 import { Loading, ErrorState } from "../components/Loading";
 import { QuantityInput } from "../components/QuantityInput";
 import { ProductCard } from "../components/ProductCard";
+import { useSeo } from "../lib/seo";
 
 export function ProductDetail() {
   const { slug } = useParams();
@@ -60,6 +61,17 @@ export function ProductDetail() {
     if (!product || !user) return null;
     return product.reviews?.find((review) => review.user.name === user.name) || null;
   }, [product, user]);
+  const productName = product ? pick(product, "name") : "";
+  const productDescription = product ? pick(product, "description").replace(/\s+/g, " ").trim() : "";
+  const seoDescription = product
+    ? `${productName} from Organic Shop Bangladesh. ${productDescription || "Pure, carefully sourced organic food delivered across Bangladesh."}`.slice(0, 158)
+    : "Browse pure honey, deshi ghee, gur, doi, dudh and other organic food from trusted Bangladeshi farms.";
+  useSeo({
+    title: product ? `Buy ${productName} Online in Bangladesh | Organic Shop` : "Organic Food Products | Organic Shop Bangladesh",
+    description: seoDescription,
+    canonicalPath: slug ? `/product/${encodeURIComponent(slug)}` : "/shop",
+    image: product?.images?.[0],
+  });
 
   const add = async () => {
     if (!product) return;

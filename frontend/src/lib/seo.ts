@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 
 export const SITE_URL = ((import.meta.env.VITE_SITE_URL as string) || "https://organic-shop-two.vercel.app").replace(/\/+$/, "");
+export const SITE_NAME = "Organic Shop";
 
-type SeoProps = {
+export type SeoProps = {
   title: string;
   description: string;
   canonicalPath: string;
@@ -19,6 +20,10 @@ function setMeta(attribute: "name" | "property", key: string, content: string) {
   element.setAttribute("content", content);
 }
 
+function removeMeta(attribute: "name" | "property", key: string) {
+  document.head.querySelector(`meta[${attribute}="${key}"]`)?.remove();
+}
+
 function setCanonical(href: string) {
   let element = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
   if (!element) {
@@ -29,27 +34,34 @@ function setCanonical(href: string) {
   element.setAttribute("href", href);
 }
 
-export function Seo({ title, description, canonicalPath, image }: SeoProps) {
+export function useSeo({ title, description, canonicalPath, image }: SeoProps) {
   useEffect(() => {
     const canonical = new URL(canonicalPath, SITE_URL).toString();
+    const imageUrl = image ? new URL(image, SITE_URL).toString() : "";
     document.title = title;
     setMeta("name", "description", description);
     setMeta("name", "robots", "index, follow, max-image-preview:large");
     setMeta("name", "googlebot", "index, follow, max-image-preview:large");
     setMeta("property", "og:type", "website");
-    setMeta("property", "og:site_name", "Organic Shop");
+    setMeta("property", "og:site_name", SITE_NAME);
     setMeta("property", "og:title", title);
     setMeta("property", "og:description", description);
     setMeta("property", "og:url", canonical);
     setMeta("name", "twitter:card", "summary_large_image");
     setMeta("name", "twitter:title", title);
     setMeta("name", "twitter:description", description);
-    if (image) {
-      setMeta("property", "og:image", image);
-      setMeta("name", "twitter:image", image);
+    if (imageUrl) {
+      setMeta("property", "og:image", imageUrl);
+      setMeta("name", "twitter:image", imageUrl);
+    } else {
+      removeMeta("property", "og:image");
+      removeMeta("name", "twitter:image");
     }
     setCanonical(canonical);
   }, [title, description, canonicalPath, image]);
+}
 
+export function Seo(props: SeoProps) {
+  useSeo(props);
   return null;
 }
