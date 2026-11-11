@@ -1,6 +1,5 @@
-# Serve the standalone /shop entry (multi-page build)
+# Serve the standalone /shop entry directly (no redirect hop).
+# SPA fallback is handled by assets.not_found_handling in wrangler.jsonc,
+# so we must NOT add a /* catch-all here (it would swallow /assets/*).
 /shop /shop/index.html 200
 /shop/ /shop/index.html 200
-
-# SPA fallback for all client-side routes (must stay last)
-/* /index.html 200

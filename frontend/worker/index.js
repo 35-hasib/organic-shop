@@ -102,61 +102,72 @@ function buildSitemap(entries) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
 
-export async function onRequest(context) {
-  const { env } = context;
-  try {
-    const baseUrl = apiUrl(env);
-    const origin = siteUrl(env);
-    const [categories, products] = await Promise.all([
-      fetchCategories(baseUrl),
-      fetchProducts(baseUrl),
-    ]);
+async function sitemapResponse(env) {
+  const baseUrl = apiUrl(env);
+  const origin = siteUrl(env);
+  const [categories, products] = await Promise.all([
+    fetchCategories(baseUrl),
+    fetchProducts(baseUrl),
+  ]);
 
-    const productLastmods = products.map((product) => lastModified(product.updatedAt));
-    const categoryLastmods = categories.map((category) => lastModified(category.updatedAt));
-    const catalogueLastmod = latestDate([...productLastmods, ...categoryLastmods]);
+  const productLastmods = products.map((product) => lastModified(product.updatedAt));
+  const categoryLastmods = categories.map((category) => lastModified(category.updatedAt));
+  const catalogueLastmod = latestDate([...productLastmods, ...categoryLastmods]);
 
-    const entries = new Map();
-    const add = (path, lastmod = null) => {
-      const loc = `${origin}${path}`;
-      const current = entries.get(loc) || null;
-      if (!entries.has(loc)) {
-        entries.set(loc, lastmod);
-      } else if (lastmod && (!current || new Date(lastmod) > new Date(current))) {
-        entries.set(loc, lastmod);
-      }
-    };
-
-    for (const path of STATIC_PATHS) {
-      add(path, path === "/" || path === "/shop" ? catalogueLastmod : null);
+  const entries = new Map();
+  const add = (path, lastmod = null) => {
+    const loc = `${origin}${path}`;
+    const current = entries.get(loc) || null;
+    if (!entries.has(loc)) {
+      entries.set(loc, lastmod);
+    } else if (lastmod && (!current || new Date(lastmod) > new Date(current))) {
+      entries.set(loc, lastmod);
     }
+  };
 
-    for (const category of categories) {
-      if (!category?.slug || category.active === false) continue;
-      add(`/category/${encodeURIComponent(category.slug)}`, lastModified(category.updatedAt));
-    }
-
-    for (const product of products) {
-      if (!product?.slug || product.published === false || product.stock <= 0) continue;
-      add(`/product/${encodeURIComponent(product.slug)}`, lastModified(product.updatedAt));
-    }
-
-    const xml = buildSitemap(entries);
-    return new Response(xml, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/xml; charset=utf-8",
-        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
-      },
-    });
-  } catch (error) {
-    console.error("Unable to generate sitemap", error);
-    return new Response("Sitemap temporarily unavailable", {
-      status: 503,
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-store",
-      },
-    });
+  for (const path of STATIC_PATHS) {
+    add(path, path === "/" || path === "/shop" ? catalogueLastmod : null);
   }
+
+  for (const category of categories) {
+    if (!category?.slug || category.active === false) continue;
+    add(`/category/${encodeURIComponent(category.slug)}`, lastModified(category.updatedAt));
+  }
+
+  for (const product of products) {
+    if (!product?.slug || product.published === false || product.stock <= 0) continue;
+    add(`/product/${encodeURIComponent(product.slug)}`, lastModified(product.updatedAt));
+  }
+
+  return buildSitemap(entries);
 }
+
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/sitemap.xml") {
+      try {
+        const xml = await sitemapResponse(env);
+        return new Response(xml, {
+          status: 200,
+          headers: {
+            "Content-Type": "application/xml; charset=utf-8",
+            "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
+          },
+        });
+      } catch (error) {
+        console.error("Unable to generate sitemap", error);
+        return new Response("Sitemap temporarily unavailable", {
+          status: 503,
+          headers: {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cache-Control": "no-store",
+          },
+        });
+      }
+    }
+
+    return env.ASSETS.fetch(request);
+  },
+};
