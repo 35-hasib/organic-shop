@@ -1,0 +1,6 @@
+# Serve the standalone /shop entry (multi-page build)
+/shop /shop/index.html 200
+/shop/ /shop/index.html 200
+
+# SPA fallback for all client-side routes (must stay last)
+/* /index.html 200
