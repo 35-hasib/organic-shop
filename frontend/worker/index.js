@@ -1,4 +1,4 @@
-const DEFAULT_SITE_URL = "https://organic-shop-two.vercel.app";
+const DEFAULT_SITE_URL = "https://organic.cholonbil.workers.dev";
 const DEFAULT_API_URL = "https://organic-shop-jf8z.onrender.com/api";
 
 const STATIC_PATHS = [

@@ -16,4 +16,4 @@ Allow: /
 User-agent: Googlebot-Image
 Allow: /
 
-Sitemap: https://organic-shop-two.vercel.app/sitemap.xml
+Sitemap: https://organic.cholonbil.workers.dev/sitemap.xml
