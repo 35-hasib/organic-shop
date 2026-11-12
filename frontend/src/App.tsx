@@ -7,6 +7,7 @@ import { ProductDetail } from "./pages/ProductDetail";
 import { Cart } from "./pages/Cart";
 import { Checkout } from "./pages/Checkout";
 import { GuestOrderConfirmation } from "./pages/GuestOrderConfirmation";
+import { TrackOrder } from "./pages/TrackOrder";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { AccountLayout } from "./pages/AccountLayout";
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="cart" element={<Cart />} />
           <Route path="checkout" element={<Checkout />} />
           <Route path="order-confirmed/:id" element={<GuestOrderConfirmation />} />
+          <Route path="track" element={<TrackOrder />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
           <Route path="account" element={<Account />}>

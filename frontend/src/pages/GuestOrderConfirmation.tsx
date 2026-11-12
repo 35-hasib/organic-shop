@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { CheckCircle2, MapPin, ShoppingBag } from "lucide-react";
+import { CheckCircle2, MapPin, PackageSearch, ShoppingBag } from "lucide-react";
 import { api, errorMessage } from "../lib/api";
 import type { Order } from "../types";
 import { useLanguage } from "../context/LanguageContext";
@@ -86,9 +86,14 @@ export function GuestOrderConfirmation() {
         </div>
       </div>
 
-      <Link to="/shop" className="btn-primary mt-6 w-full">
-        <ShoppingBag className="h-4 w-4" /> {t("cart.continue")}
-      </Link>
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+        <Link to={`/track?order=${encodeURIComponent(order.orderNumber)}`} className="btn-primary flex-1">
+          <PackageSearch className="h-4 w-4" /> {t("nav.track")}
+        </Link>
+        <Link to="/shop" className="btn-secondary flex-1">
+          <ShoppingBag className="h-4 w-4" /> {t("cart.continue")}
+        </Link>
+      </div>
     </div>
   );
 }

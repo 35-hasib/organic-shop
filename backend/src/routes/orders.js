@@ -12,6 +12,7 @@ import {
   createOrderRequest,
   findGuestCustomer,
   getGuestOrder,
+  getOrderByNumber,
   resolveOrderRequest,
 } from "../services/orders.js";
 
@@ -59,6 +60,14 @@ router.get(
     const phone = String(req.query.phone || "").trim();
     if (!phone) throw new HttpError(400, "Mobile number is required");
     const order = await getGuestOrder(req.params.id, phone);
+    res.json({ order: serializeDecimals(order) });
+  })
+);
+
+router.get(
+  "/track",
+  asyncHandler(async (req, res) => {
+    const order = await getOrderByNumber(req.query.orderNumber);
     res.json({ order: serializeDecimals(order) });
   })
 );

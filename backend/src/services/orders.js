@@ -297,6 +297,20 @@ export async function findGuestCustomer(phone) {
   };
 }
 
+export async function getOrderByNumber(orderNumber) {
+  const normalized = String(orderNumber || "").trim().toUpperCase();
+  if (!normalized) throw new HttpError(400, "Order number is required");
+  const order = await prisma.order.findUnique({
+    where: { orderNumber: normalized },
+    include: {
+      items: true,
+      statusHistory: { orderBy: { createdAt: "asc" } },
+    },
+  });
+  if (!order) throw new HttpError(404, "Order not found");
+  return order;
+}
+
 export async function getGuestOrder(id, phone) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw new HttpError(404, "Order not found");
   const order = await prisma.order.findFirst({

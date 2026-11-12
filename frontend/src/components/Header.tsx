@@ -6,11 +6,12 @@ import { useAuth } from "../context/AuthContext";
 import { useShop } from "../context/ShopContext";
 import { useSettings } from "../context/SettingsContext";
 
-const navItems: { to: string; key: "nav.home" | "nav.shop" | "nav.about" | "nav.contact" }[] = [
+const navItems: { to: string; key: "nav.home" | "nav.shop" | "nav.about" | "nav.contact" | "nav.track" }[] = [
   { to: "/", key: "nav.home" },
   { to: "/shop", key: "nav.shop" },
   { to: "/about", key: "nav.about" },
   { to: "/contact", key: "nav.contact" },
+  { to: "/track", key: "nav.track" },
 ];
 
 export function Header() {

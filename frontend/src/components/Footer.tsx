@@ -65,6 +65,7 @@ export function Footer() {
               <li><Link to="/returns" className="hover:text-white">{t("footer.returns")}</Link></li>
               <li><Link to="/terms" className="hover:text-white">{t("footer.terms")}</Link></li>
               <li><Link to="/privacy" className="hover:text-white">{t("footer.privacy")}</Link></li>
+              <li><Link to="/track" className="hover:text-white">{t("nav.track")}</Link></li>
               <li><Link to="/account/orders" className="hover:text-white">{t("account.orders")}</Link></li>
             </ul>
           </div>
