@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { SlidersHorizontal, X } from "lucide-react";
 import { api, errorMessage } from "../lib/api";
 import type { Category, Product } from "../types";
@@ -155,23 +155,6 @@ export function Shop() {
       <Seo title={seoTitle} description={seoDescription} canonicalPath={canonicalPath} />
       <PageHeader title={activeCategory ? pick(activeCategory, "name") : title} subtitle={activeCategory ? pick(activeCategory, "description") || t("shop.subtitle") : t("shop.subtitle")} />
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        {!routeCategory && !params.get("category") && !q && !inStock && !minPrice && !maxPrice && (
-          <section className="mb-10 rounded-3xl border border-stone-200 bg-cream-50 p-6 sm:p-8">
-            <h2 className="font-display text-2xl text-stone-900 sm:text-3xl">{t("shop.introTitle")}</h2>
-            <p className="mt-3 max-w-4xl leading-relaxed text-stone-600">{t("shop.introText")}</p>
-            <p className="mt-3 max-w-4xl leading-relaxed text-stone-600">{t("shop.introText2")}</p>
-            <p className="mt-5 text-sm font-semibold text-stone-700">{t("shop.browseCategories")}</p>
-            <ul className="mt-3 flex flex-wrap gap-2 text-sm">
-              {flatCategories.map((category) => (
-                <li key={category.id}>
-                  <Link to={`/category/${category.slug}`} className="inline-block rounded-full border border-stone-300 px-4 py-1.5 text-stone-700 hover:border-leaf-600 hover:text-leaf-700">
-                    {pick(category, "name")}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-stone-500">{total} {t("shop.results")}</p>
           <div className="flex items-center gap-2">
