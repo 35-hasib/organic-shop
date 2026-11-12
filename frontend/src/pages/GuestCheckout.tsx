@@ -16,7 +16,6 @@ interface GuestCustomer {
   address: string;
   city: string;
   area: string;
-  insideDhaka: boolean;
   note: string;
 }
 
@@ -30,33 +29,30 @@ const blankForm = {
 };
 
 export function GuestCheckout() {
-  const { t, lang } = useLanguage();
+  const { t, lang, pick } = useLanguage();
   const { cart, cartLoading, clearCart } = useShop();
   const { show } = useToast();
   const navigate = useNavigate();
   const [areas, setAreas] = useState<DeliveryArea[]>([]);
   const [form, setForm] = useState(blankForm);
-  const [location, setLocation] = useState<"inside" | "outside">("inside");
+  const [areaId, setAreaId] = useState("");
   const [placing, setPlacing] = useState(false);
   const [error, setError] = useState("");
   const key = useRef(idempotencyKey());
 
   useEffect(() => {
     api<{ areas: DeliveryArea[] }>("/delivery-areas", { auth: false })
-      .then((data) => setAreas(data.areas))
+      .then((data) => {
+        setAreas(data.areas);
+        setAreaId((current) => current || data.areas[0]?.id || "");
+      })
       .catch((err) => setError(errorMessage(err)));
   }, []);
 
-  const insideArea = areas.find((area) => area.district.toLowerCase() === "dhaka") || areas[0];
-  const outsideArea =
-    areas.find((area) => area.district.toLowerCase() === "other") ||
-    areas.find((area) => area.id !== insideArea?.id) ||
-    insideArea;
-  const selectedArea = location === "outside" ? outsideArea : insideArea;
-
+  const area = areas.find((item) => item.id === areaId);
   const subtotal = Number(cart.subtotal);
-  const free = selectedArea?.freeDeliveryThreshold ? subtotal >= Number(selectedArea.freeDeliveryThreshold) : false;
-  const deliveryFee = selectedArea ? (free ? 0 : Number(selectedArea.charge)) : 0;
+  const free = area?.freeDeliveryThreshold ? subtotal >= Number(area.freeDeliveryThreshold) : false;
+  const deliveryFee = area ? (free ? 0 : Number(area.charge)) : 0;
   const total = subtotal + deliveryFee;
 
   const update = (field: keyof typeof form) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -80,7 +76,12 @@ export function GuestCheckout() {
         area: current.area || customer.area,
         note: current.note || customer.note,
       }));
-      setLocation(customer.insideDhaka ? "inside" : "outside");
+      const matchedArea = areas.find(
+        (item) =>
+          item.district.toLowerCase() === customer.city.toLowerCase() ||
+          item.division.toLowerCase() === customer.city.toLowerCase()
+      );
+      if (matchedArea) setAreaId(matchedArea.id);
       show(lang === "bn" ? "পুরনো অর্ডারের তথ্য পাওয়া গেছে" : "Previous order details found");
     } catch {
       // Auto-fill is best effort; the customer can still type their details.
@@ -94,8 +95,8 @@ export function GuestCheckout() {
       setError(lang === "bn" ? "অনুগ্রহ করে সব প্রয়োজনীয় তথ্য পূরণ করুন।" : "Please fill in all required fields.");
       return;
     }
-    if (!selectedArea) {
-      setError(lang === "bn" ? "ডেলিভারি লোকেশন নির্বাচন করুন।" : "Select a delivery location.");
+    if (!areaId) {
+      setError(lang === "bn" ? "ডেলিভারি এরিয়া নির্বাচন করুন।" : "Select a delivery area.");
       return;
     }
     setPlacing(true);
@@ -109,7 +110,7 @@ export function GuestCheckout() {
           address: form.address.trim(),
           city: form.city.trim(),
           area: form.area.trim(),
-          deliveryAreaId: selectedArea.id,
+          deliveryAreaId: areaId,
           note: form.note.trim() || undefined,
           paymentMethod: "COD",
           items: cart.items.map((item) => ({ productId: item.product.id, quantity: item.quantity })),
@@ -147,7 +148,7 @@ export function GuestCheckout() {
       />
       <form onSubmit={placeOrder}>
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1fr_380px] lg:px-8">
-          <div className="space-y-6">
+          <div className="space-y-8">
             <section className="rounded-2xl border border-stone-200 bg-white p-5">
               <h2 className="flex items-center gap-2 font-display text-2xl text-stone-900">
                 <User className="h-5 w-5 text-leaf-600" /> {lang === "bn" ? "ব্যক্তিগত তথ্য" : "Personal information"}
@@ -203,33 +204,24 @@ export function GuestCheckout() {
                     <input value={form.area} onChange={update("area")} required className="input" placeholder={lang === "bn" ? "যেমন: মিরপুর, গুলশান..." : "e.g. Mirpur, Gulshan..."} />
                   </div>
                 </div>
-                <div>
-                  <label className="label">{lang === "bn" ? "ডেলিভারি লোকেশন *" : "Delivery location *"}</label>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {insideArea && (
-                      <label className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition ${location === "inside" ? "border-leaf-500 bg-leaf-50/50" : "border-stone-200 hover:border-stone-300"}`}>
-                        <input type="radio" name="location" checked={location === "inside"} onChange={() => setLocation("inside")} className="mt-1 h-4 w-4 text-leaf-700 focus:ring-leaf-500" />
-                        <div>
-                          <p className="text-sm font-semibold text-stone-900">{lang === "bn" ? "ঢাকার ভেতরে" : "Inside Dhaka"}</p>
-                          <p className="text-xs text-stone-500">
-                            {lang === "bn" ? `ডেলিভারি চার্জ: ${money(insideArea.charge)} থেকে` : `Delivery charge: from ${money(insideArea.charge)}`}
-                          </p>
-                        </div>
-                      </label>
-                    )}
-                    {outsideArea && (
-                      <label className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition ${location === "outside" ? "border-leaf-500 bg-leaf-50/50" : "border-stone-200 hover:border-stone-300"}`}>
-                        <input type="radio" name="location" checked={location === "outside"} onChange={() => setLocation("outside")} className="mt-1 h-4 w-4 text-leaf-700 focus:ring-leaf-500" />
-                        <div>
-                          <p className="text-sm font-semibold text-stone-900">{lang === "bn" ? "ঢাকার বাইরে" : "Outside Dhaka"}</p>
-                          <p className="text-xs text-stone-500">
-                            {lang === "bn" ? `ডেলিভারি চার্জ: ${money(outsideArea.charge)} থেকে` : `Delivery charge: from ${money(outsideArea.charge)}`}
-                          </p>
-                        </div>
-                      </label>
-                    )}
-                  </div>
-                </div>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="mb-4 flex items-center gap-2 font-display text-2xl text-stone-900">
+                <Truck className="h-5 w-5 text-leaf-600" /> {t("checkout.area")}
+              </h2>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {areas.map((item) => (
+                  <label key={item.id} className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition ${areaId === item.id ? "border-leaf-500 bg-leaf-50/50" : "border-stone-200 bg-white hover:border-stone-300"}`}>
+                    <input type="radio" name="area" checked={areaId === item.id} onChange={() => setAreaId(item.id)} className="mt-1 h-4 w-4 border-stone-300 text-leaf-700 focus:ring-leaf-500" />
+                    <div>
+                      <p className="text-sm font-semibold text-stone-900">{pick(item, "name")}</p>
+                      <p className="text-xs text-stone-500">{money(item.charge)} {lang === "bn" ? "ডেলিভারি চার্জ" : "delivery charge"}</p>
+                      {item.freeDeliveryThreshold && <p className="mt-0.5 text-[11px] text-leaf-600">{lang === "bn" ? `৳${Number(item.freeDeliveryThreshold).toLocaleString()} এর বেশি অর্ডারে ফ্রি` : `Free over ${money(item.freeDeliveryThreshold)}`}</p>}
+                    </div>
+                  </label>
+                ))}
               </div>
             </section>
 
@@ -259,9 +251,7 @@ export function GuestCheckout() {
           </div>
 
           <aside className="h-fit rounded-2xl border border-stone-200 bg-white p-6 lg:sticky lg:top-28">
-            <h2 className="flex items-center gap-2 font-display text-2xl text-stone-900">
-              <Truck className="h-5 w-5 text-leaf-600" /> {t("cart.summary")}
-            </h2>
+            <h2 className="font-display text-2xl text-stone-900">{t("cart.summary")}</h2>
             <div className="mt-4 max-h-64 space-y-3 overflow-auto pr-1">
               {cart.items.map((item) => (
                 <div key={item.id} className="flex gap-3">
@@ -279,14 +269,14 @@ export function GuestCheckout() {
             <dl className="mt-5 space-y-2 border-t border-stone-200 pt-4 text-sm">
               <div className="flex justify-between"><dt className="text-stone-500">{t("common.subtotal")}</dt><dd>{money(subtotal)}</dd></div>
               <div className="flex justify-between">
-                <dt className="text-stone-500">{lang === "bn" ? "ডেলিভারি চার্জ" : "Delivery charge"}</dt>
-                <dd>{selectedArea ? (free ? (lang === "bn" ? "ফ্রি" : "Free") : money(deliveryFee)) : "-"}</dd>
+                <dt className="text-stone-500">{t("common.delivery")}</dt>
+                <dd>{area ? (free ? (lang === "bn" ? "ফ্রি" : "Free") : money(deliveryFee)) : "-"}</dd>
               </div>
               <div className="flex justify-between border-t border-stone-200 pt-3 text-base font-bold"><dt>{t("common.total")}</dt><dd>{money(total)}</dd></div>
             </dl>
             {error && <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
-            <button type="submit" disabled={placing || !selectedArea} className="btn-primary mt-5 w-full">
-              {placing ? t("common.loading") : (lang === "bn" ? "অর্ডার কনফার্ম করুন" : "Confirm order")}
+            <button type="submit" disabled={placing || !areaId} className="btn-primary mt-5 w-full">
+              {placing ? t("common.loading") : t("checkout.placeOrder")}
             </button>
             <p className="mt-3 text-center text-[11px] text-stone-500">
               {lang === "bn" ? "ক্যাশ অন ডেলিভারি — পণ্য পাওয়ার পরে পরিশোধ করুন" : "Cash on delivery — pay after receiving the product."}
