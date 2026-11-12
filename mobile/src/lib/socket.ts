@@ -18,6 +18,7 @@ export function getSocket() {
   if (!socket) {
     socket = io(SOCKET_URL, {
       autoConnect: false,
+      tryAllTransports: true,
       auth: (callback) => callback({ token: getAuthToken() || undefined }),
     });
   }

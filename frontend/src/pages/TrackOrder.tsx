@@ -55,20 +55,31 @@ export function TrackOrder() {
     if (!order?.orderNumber) return;
     const orderNumber = order.orderNumber;
     const socket = connectSocket();
+    let hasConnected = socket.connected;
+    const refreshOrder = () => {
+      api<{ order: Order }>(`/orders/track?orderNumber=${encodeURIComponent(orderNumber)}`, { auth: false })
+        .then((data) => setOrder(data.order))
+        .catch(() => {});
+    };
     const subscribe = () => {
       socket.emit("order:subscribe", orderNumber);
+    };
+    const handleConnect = () => {
+      subscribe();
+      if (hasConnected) refreshOrder();
+      hasConnected = true;
     };
     const handleUpdate = (payload: OrderRealtimePayload) => {
       setOrder((previous) => mergeOrderUpdate(previous, payload));
     };
     subscribe();
-    socket.on("connect", subscribe);
+    socket.on("connect", handleConnect);
     socket.on("order:status", handleUpdate);
     socket.on("order:payment", handleUpdate);
     socket.on("order:updated", handleUpdate);
     return () => {
       socket.emit("order:unsubscribe", orderNumber);
-      socket.off("connect", subscribe);
+      socket.off("connect", handleConnect);
       socket.off("order:status", handleUpdate);
       socket.off("order:payment", handleUpdate);
       socket.off("order:updated", handleUpdate);
