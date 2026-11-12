@@ -88,11 +88,9 @@ export function Shop() {
   };
 
   const clearFilters = () => {
-    const next = new URLSearchParams();
-    if (q) next.set("q", q);
-    const suffix = next.toString();
-    if (selectedCategory) navigate(`/category/${encodeURIComponent(selectedCategory)}${suffix ? `?${suffix}` : ""}`);
-    else setParams(next);
+    setFiltersOpen(false);
+    if (routeCategory) navigate("/shop");
+    else setParams(new URLSearchParams());
   };
 
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
