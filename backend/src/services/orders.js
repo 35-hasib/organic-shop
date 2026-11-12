@@ -1,6 +1,7 @@
 import { prisma } from "../prisma.js";
 import { HttpError } from "../lib/http.js";
 import { money, parseMoney } from "../lib/money.js";
+import { emitOrderChanged, emitOrderCreated, emitOrderRequest } from "../realtime.js";
 import { consumeCoupon, releaseCoupon, validateCoupon } from "./coupons.js";
 
 const cancellationStatuses = ["PENDING", "CONFIRMED", "PROCESSING"];
@@ -177,7 +178,7 @@ export async function createOrder(userId, input) {
     return existing;
   }
 
-  return prisma.$transaction(async (tx) => {
+  const order = await prisma.$transaction(async (tx) => {
     const cart = await tx.cartItem.findMany({
       where: { userId },
       include: { product: true },
@@ -216,6 +217,8 @@ export async function createOrder(userId, input) {
       actorId: userId,
     });
   });
+  emitOrderCreated(order);
+  return order;
 }
 
 export async function createGuestOrder(input) {
@@ -228,7 +231,7 @@ export async function createGuestOrder(input) {
     return existing;
   }
 
-  return prisma.$transaction(async (tx) => {
+  const order = await prisma.$transaction(async (tx) => {
     const area = await tx.deliveryArea.findFirst({
       where: { id: input.deliveryAreaId, active: true },
     });
@@ -269,6 +272,8 @@ export async function createGuestOrder(input) {
       actorId: null,
     });
   });
+  emitOrderCreated(order);
+  return order;
 }
 
 export async function findGuestCustomer(phone) {
@@ -325,7 +330,7 @@ export async function getGuestOrder(id, phone) {
 }
 
 export async function changeOrderStatus({ orderId, status, note, actorId }) {
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({
       where: { id: orderId },
       include: { items: true },
@@ -357,7 +362,7 @@ export async function changeOrderStatus({ orderId, status, note, actorId }) {
     }
 
     const updated = await tx.order.update({ where: { id: order.id }, data });
-    await tx.orderStatusHistory.create({
+    const history = await tx.orderStatusHistory.create({
       data: { orderId: order.id, status, note: note || null, changedBy: actorId },
     });
     if (order.userId) {
@@ -371,8 +376,11 @@ export async function changeOrderStatus({ orderId, status, note, actorId }) {
       });
     }
 
-    return updated;
+    return { order: updated, history };
   });
+
+  emitOrderChanged(result.order, { note: note || null, history: result.history });
+  return result.order;
 }
 
 export async function cancelOrderByCustomer({ orderId, userId, note }) {
@@ -390,7 +398,7 @@ export async function cancelOrderByCustomer({ orderId, userId, note }) {
 }
 
 export async function createOrderRequest({ orderId, userId, type, reason }) {
-  return prisma.$transaction(async (tx) => {
+  const request = await prisma.$transaction(async (tx) => {
     const order = await tx.order.findFirst({ where: { id: orderId, userId } });
     if (!order) throw new HttpError(404, "Order not found");
     if (order.status !== "DELIVERED") {
@@ -404,10 +412,12 @@ export async function createOrderRequest({ orderId, userId, type, reason }) {
       data: { orderId, userId, type, reason },
     });
   });
+  emitOrderRequest(request);
+  return request;
 }
 
 export async function resolveOrderRequest({ requestId, status, adminNote, adminId }) {
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const request = await tx.orderRequest.findUnique({ where: { id: requestId } });
     if (!request) throw new HttpError(404, "Request not found");
     if (request.status !== "PENDING") throw new HttpError(400, "Request has already been resolved");
@@ -415,6 +425,8 @@ export async function resolveOrderRequest({ requestId, status, adminNote, adminI
       where: { id: requestId },
       data: { status, adminNote: adminNote || null },
     });
+    let changedOrder = null;
+    let history = null;
     if (status === "APPROVED") {
       const order = await tx.order.findUnique({
         where: { id: request.orderId },
@@ -422,14 +434,14 @@ export async function resolveOrderRequest({ requestId, status, adminNote, adminI
       });
       if (order && order.status === "DELIVERED") {
         await restoreStock(tx, order, "RETURN", `Return approved for ${order.orderNumber}`, adminId);
-        await tx.order.update({
+        changedOrder = await tx.order.update({
           where: { id: order.id },
           data: {
             status: "RETURNED",
             paymentStatus: order.paymentStatus === "PAID" ? "REFUNDED" : order.paymentStatus,
           },
         });
-        await tx.orderStatusHistory.create({
+        history = await tx.orderStatusHistory.create({
           data: {
             orderId: order.id,
             status: "RETURNED",
@@ -449,6 +461,12 @@ export async function resolveOrderRequest({ requestId, status, adminNote, adminI
         }
       }
     }
-    return updated;
+    return { request: updated, changedOrder, history };
   });
+
+  if (result.changedOrder) {
+    emitOrderChanged(result.changedOrder, { note: "Return/refund approved", history: result.history });
+  }
+  emitOrderRequest(result.request);
+  return result.request;
 }

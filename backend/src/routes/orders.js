@@ -4,6 +4,7 @@ import { prisma } from "../prisma.js";
 import { authRequired, requireRole } from "../middleware/auth.js";
 import { asyncHandler, HttpError, pagination } from "../lib/http.js";
 import { serializeDecimals } from "../lib/serialize.js";
+import { emitOrderChanged } from "../realtime.js";
 import {
   cancelOrderByCustomer,
   changeOrderStatus,
@@ -244,6 +245,7 @@ router.patch(
       where: { id: req.params.id },
       data: { paymentStatus: parsed.data.paymentStatus },
     });
+    emitOrderChanged(order, { event: "order:payment" });
     res.json({ order: serializeDecimals(order) });
   })
 );

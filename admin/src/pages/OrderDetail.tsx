@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, MapPin, Phone, User as UserIcon } from "lucide-react";
 import { api, errorMessage } from "../lib/api";
 import type { Order, OrderRequest } from "../types";
+import { connectSocket, mergeOrderUpdate, type OrderRealtimePayload } from "../lib/socket";
 import { dateTime, money, NEXT_STATUSES, ORDER_STATUSES, statusLabel } from "../lib/format";
 import { useToast } from "../context/ToastContext";
 import { Badge, ErrorState, Loading, Modal, PageHeader } from "../components/ui";
@@ -36,6 +37,35 @@ export function OrderDetail() {
   useEffect(() => {
     load();
   }, [id]);
+
+  useEffect(() => {
+    if (!order?.orderNumber) return;
+    const orderNumber = order.orderNumber;
+    const socket = connectSocket();
+    const subscribe = () => {
+      socket.emit("order:subscribe", orderNumber);
+    };
+    const handleUpdate = (payload: OrderRealtimePayload) => {
+      setOrder((previous) => mergeOrderUpdate(previous, payload));
+    };
+    const handleRequest = () => {
+      void load();
+    };
+    subscribe();
+    socket.on("connect", subscribe);
+    socket.on("order:status", handleUpdate);
+    socket.on("order:payment", handleUpdate);
+    socket.on("order:updated", handleUpdate);
+    socket.on("order:request", handleRequest);
+    return () => {
+      socket.emit("order:unsubscribe", orderNumber);
+      socket.off("connect", subscribe);
+      socket.off("order:status", handleUpdate);
+      socket.off("order:payment", handleUpdate);
+      socket.off("order:updated", handleUpdate);
+      socket.off("order:request", handleRequest);
+    };
+  }, [order?.orderNumber]);
 
   const updateStatus = async (event: React.FormEvent) => {
     event.preventDefault();

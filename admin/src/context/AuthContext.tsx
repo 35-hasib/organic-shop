@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, getToken, setToken } from "../lib/api";
+import { disconnectSocket, refreshSocketAuth } from "../lib/socket";
 import type { User } from "../types";
 
 interface AuthValue {
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(null);
         localStorage.removeItem(USER_KEY);
         setUser(null);
+        disconnectSocket();
       } finally {
         setLoading(false);
       }
@@ -47,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const onUnauthorized = () => {
       setUser(null);
       localStorage.removeItem(USER_KEY);
+      disconnectSocket();
     };
     window.addEventListener("organic-admin:unauthorized", onUnauthorized);
     return () => window.removeEventListener("organic-admin:unauthorized", onUnauthorized);
@@ -62,12 +65,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(data.token);
     localStorage.setItem(USER_KEY, JSON.stringify(data.user));
     setUser(data.user);
+    refreshSocketAuth();
   };
 
   const logout = () => {
     setToken(null);
     localStorage.removeItem(USER_KEY);
     setUser(null);
+    disconnectSocket();
   };
 
   const value = useMemo(() => ({ user, loading, login, logout }), [user, loading]);

@@ -31,6 +31,10 @@ export function setUnauthorizedHandler(handler: (() => void) | null) {
   unauthorizedHandler = handler;
 }
 
+export function getAuthToken() {
+  return token;
+}
+
 type Options = Omit<RequestInit, "body"> & { body?: unknown; auth?: boolean };
 
 export async function api<T>(path: string, options: Options = {}): Promise<T> {

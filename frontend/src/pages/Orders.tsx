@@ -5,6 +5,7 @@ import { api, errorMessage } from "../lib/api";
 import type { Order } from "../types";
 import { useLanguage } from "../context/LanguageContext";
 import { date, money } from "../lib/format";
+import { connectSocket, mergeOrderUpdate, type OrderRealtimePayload } from "../lib/socket";
 import { StatusBadge } from "../components/StatusBadge";
 import { Select } from "../components/Select";
 import { EmptyState, ErrorState, Loading } from "../components/Loading";
@@ -27,6 +28,37 @@ export function Orders() {
       .finally(() => active && setLoading(false));
     return () => {
       active = false;
+    };
+  }, [status]);
+
+  useEffect(() => {
+    const socket = connectSocket();
+    const handleUpdate = (payload: OrderRealtimePayload) => {
+      const incoming = payload?.order;
+      if (!incoming?.orderNumber) return;
+      setOrders((previous) => {
+        const index = previous.findIndex((order) => order.id === incoming.id || order.orderNumber === incoming.orderNumber);
+        if (status && incoming.status && incoming.status !== status) {
+          return index === -1 ? previous : previous.filter((_, position) => position !== index);
+        }
+        if (index === -1) {
+          return incoming.items ? [incoming as Order, ...previous] : previous;
+        }
+        const next = [...previous];
+        const merged = mergeOrderUpdate(next[index], payload);
+        if (merged) next[index] = merged;
+        return next;
+      });
+    };
+    socket.on("order:created", handleUpdate);
+    socket.on("order:status", handleUpdate);
+    socket.on("order:payment", handleUpdate);
+    socket.on("order:updated", handleUpdate);
+    return () => {
+      socket.off("order:created", handleUpdate);
+      socket.off("order:status", handleUpdate);
+      socket.off("order:payment", handleUpdate);
+      socket.off("order:updated", handleUpdate);
     };
   }, [status]);
 

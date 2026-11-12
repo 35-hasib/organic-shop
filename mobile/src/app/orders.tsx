@@ -3,6 +3,7 @@ import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from "rea
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api, errorMessage } from "../lib/api";
+import { connectSocket, mergeOrderUpdate, type OrderRealtimePayload } from "../lib/socket";
 import type { Order } from "../types";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
@@ -38,6 +39,35 @@ export default function OrdersScreen() {
 
   useEffect(() => {
     if (user) load();
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user) return;
+    const socket = connectSocket();
+    const handleUpdate = (payload: OrderRealtimePayload) => {
+      const incoming = payload?.order;
+      if (!incoming?.orderNumber) return;
+      setOrders((previous) => {
+        const index = previous.findIndex((order) => order.id === incoming.id || order.orderNumber === incoming.orderNumber);
+        if (index === -1) {
+          return incoming.items ? [incoming as Order, ...previous] : previous;
+        }
+        const next = [...previous];
+        const merged = mergeOrderUpdate(next[index], payload);
+        if (merged) next[index] = merged;
+        return next;
+      });
+    };
+    socket.on("order:created", handleUpdate);
+    socket.on("order:status", handleUpdate);
+    socket.on("order:payment", handleUpdate);
+    socket.on("order:updated", handleUpdate);
+    return () => {
+      socket.off("order:created", handleUpdate);
+      socket.off("order:status", handleUpdate);
+      socket.off("order:payment", handleUpdate);
+      socket.off("order:updated", handleUpdate);
+    };
   }, [user?.id]);
 
   if (!user || loading) return <Screen><LoadingState /></Screen>;

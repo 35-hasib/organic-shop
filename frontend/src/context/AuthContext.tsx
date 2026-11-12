@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { api, getToken, setToken } from "../lib/api";
+import { disconnectSocket, refreshSocketAuth } from "../lib/socket";
 import type { User } from "../types";
 
 interface AuthValue {
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       setToken(null);
       setUser(null);
+      disconnectSocket();
     } finally {
       setLoading(false);
     }
@@ -37,7 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refresh();
-    const onUnauthorized = () => setUser(null);
+    const onUnauthorized = () => {
+      setUser(null);
+      disconnectSocket();
+    };
     window.addEventListener("organic:unauthorized", onUnauthorized);
     return () => window.removeEventListener("organic:unauthorized", onUnauthorized);
   }, []);
@@ -50,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     setToken(data.token);
     setUser(data.user);
+    refreshSocketAuth();
     return data.user;
   };
 
@@ -61,12 +67,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     setToken(data.token);
     setUser(data.user);
+    refreshSocketAuth();
     return data.user;
   };
 
   const logout = () => {
     setToken(null);
     setUser(null);
+    disconnectSocket();
     localStorage.removeItem("organic_cart_loaded");
   };
 

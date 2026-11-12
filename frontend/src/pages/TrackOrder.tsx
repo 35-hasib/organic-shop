@@ -5,6 +5,7 @@ import { ApiError, api, errorMessage } from "../lib/api";
 import type { Order, OrderStatus } from "../types";
 import { useLanguage } from "../context/LanguageContext";
 import { dateTime, money, statusLabel } from "../lib/format";
+import { connectSocket, mergeOrderUpdate, type OrderRealtimePayload } from "../lib/socket";
 import { StatusBadge } from "../components/StatusBadge";
 import { PageHeader } from "../components/PageHeader";
 import { Loading } from "../components/Loading";
@@ -49,6 +50,30 @@ export function TrackOrder() {
       active = false;
     };
   }, [query]);
+
+  useEffect(() => {
+    if (!order?.orderNumber) return;
+    const orderNumber = order.orderNumber;
+    const socket = connectSocket();
+    const subscribe = () => {
+      socket.emit("order:subscribe", orderNumber);
+    };
+    const handleUpdate = (payload: OrderRealtimePayload) => {
+      setOrder((previous) => mergeOrderUpdate(previous, payload));
+    };
+    subscribe();
+    socket.on("connect", subscribe);
+    socket.on("order:status", handleUpdate);
+    socket.on("order:payment", handleUpdate);
+    socket.on("order:updated", handleUpdate);
+    return () => {
+      socket.emit("order:unsubscribe", orderNumber);
+      socket.off("connect", subscribe);
+      socket.off("order:status", handleUpdate);
+      socket.off("order:payment", handleUpdate);
+      socket.off("order:updated", handleUpdate);
+    };
+  }, [order?.orderNumber]);
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();

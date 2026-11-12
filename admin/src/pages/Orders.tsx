@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Download, Search } from "lucide-react";
 import { api, download, errorMessage } from "../lib/api";
 import type { Order } from "../types";
+import { connectSocket, type OrderRealtimePayload } from "../lib/socket";
 import { date, money, ORDER_STATUSES } from "../lib/format";
 import { useToast } from "../context/ToastContext";
 import { Badge, EmptyState, ErrorState, Loading, PageHeader, Pagination } from "../components/ui";
@@ -47,6 +48,43 @@ export function Orders() {
   useEffect(() => {
     load();
   }, [page, status]);
+
+  const loadRef = useRef(load);
+  useEffect(() => {
+    loadRef.current = load;
+  });
+
+  useEffect(() => {
+    const socket = connectSocket();
+    const handleUpdate = (payload: OrderRealtimePayload) => {
+      const incoming = payload?.order;
+      if (!incoming?.id) return;
+      if (incoming.items) loadRef.current();
+      setOrders((previous) => {
+        const index = previous.findIndex((order) => order.id === incoming.id);
+        if (status && incoming.status && incoming.status !== status) {
+          return index === -1 ? previous : previous.filter((order) => order.id !== incoming.id);
+        }
+        if (index === -1) return previous;
+        const next = [...previous];
+        next[index] = { ...next[index], ...incoming };
+        return next;
+      });
+    };
+    const handleRequest = () => loadRef.current();
+    socket.on("order:created", handleUpdate);
+    socket.on("order:status", handleUpdate);
+    socket.on("order:payment", handleUpdate);
+    socket.on("order:updated", handleUpdate);
+    socket.on("order:request", handleRequest);
+    return () => {
+      socket.off("order:created", handleUpdate);
+      socket.off("order:status", handleUpdate);
+      socket.off("order:payment", handleUpdate);
+      socket.off("order:updated", handleUpdate);
+      socket.off("order:request", handleRequest);
+    };
+  }, [status]);
 
   const exportOrders = async () => {
     try {

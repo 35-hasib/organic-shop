@@ -4,6 +4,7 @@ import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { api, errorMessage } from "../../lib/api";
+import { connectSocket, mergeOrderUpdate, type OrderRealtimePayload } from "../../lib/socket";
 import type { Order } from "../../types";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
@@ -36,6 +37,30 @@ export default function OrderDetailScreen() {
     if (!user) return;
     load();
   }, [id, user?.id]);
+
+  useEffect(() => {
+    if (!order?.orderNumber) return;
+    const orderNumber = order.orderNumber;
+    const socket = connectSocket();
+    const subscribe = () => {
+      socket.emit("order:subscribe", orderNumber);
+    };
+    const handleUpdate = (payload: OrderRealtimePayload) => {
+      setOrder((previous) => mergeOrderUpdate(previous, payload));
+    };
+    subscribe();
+    socket.on("connect", subscribe);
+    socket.on("order:status", handleUpdate);
+    socket.on("order:payment", handleUpdate);
+    socket.on("order:updated", handleUpdate);
+    return () => {
+      socket.emit("order:unsubscribe", orderNumber);
+      socket.off("connect", subscribe);
+      socket.off("order:status", handleUpdate);
+      socket.off("order:payment", handleUpdate);
+      socket.off("order:updated", handleUpdate);
+    };
+  }, [order?.orderNumber]);
 
   const confirmCancel = () => {
     if (!order) return;

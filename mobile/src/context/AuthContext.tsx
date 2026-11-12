@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { api, loadStoredToken, setAuthToken, setUnauthorizedHandler } from "../lib/api";
+import { disconnectSocket, refreshSocketAuth } from "../lib/socket";
 import type { User } from "../types";
 
 const USER_KEY = "organic_user";
@@ -45,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await setAuthToken(null);
         await AsyncStorage.removeItem(USER_KEY);
         setUser(null);
+        disconnectSocket();
       } finally {
         setLoading(false);
       }
@@ -53,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUnauthorizedHandler(() => {
       setUser(null);
       AsyncStorage.removeItem(USER_KEY);
+      disconnectSocket();
     });
     return () => setUnauthorizedHandler(null);
   }, []);
@@ -66,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await setAuthToken(data.token);
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(data.user));
     setUser(data.user);
+    refreshSocketAuth();
   };
 
   const register = async (input: RegisterInput) => {
@@ -76,12 +80,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await setAuthToken(data.token);
     await AsyncStorage.setItem(USER_KEY, JSON.stringify(data.user));
     setUser(data.user);
+    refreshSocketAuth();
   };
 
   const logout = async () => {
     await setAuthToken(null);
     await AsyncStorage.removeItem(USER_KEY);
     setUser(null);
+    disconnectSocket();
   };
 
   const value = useMemo(() => ({ user, loading, login, register, logout }), [user, loading]);
