@@ -153,7 +153,9 @@ export function Shop() {
   return (
     <div>
       <Seo title={seoTitle} description={seoDescription} canonicalPath={canonicalPath} />
-      <PageHeader title={activeCategory ? pick(activeCategory, "name") : title} subtitle={activeCategory ? pick(activeCategory, "description") || t("shop.subtitle") : t("shop.subtitle")} />
+      {(activeCategory || q) && (
+        <PageHeader title={activeCategory ? pick(activeCategory, "name") : title} subtitle={activeCategory ? pick(activeCategory, "description") || t("shop.subtitle") : t("shop.subtitle")} />
+      )}
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-stone-500">{total} {t("shop.results")}</p>

@@ -119,17 +119,6 @@ export function Home() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <div className="mb-10 max-w-3xl">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-leaf-600">{lang === "bn" ? "অর্গানিক শপ বাংলাদেশ" : "Organic Shop Bangladesh"}</p>
-          <h2 className="mt-3 font-display text-3xl text-stone-900 sm:text-4xl">{t("home.introTitle")}</h2>
-          <p className="mt-4 leading-relaxed text-stone-600">{t("home.introText1")}</p>
-          <p className="mt-3 leading-relaxed text-stone-600">{t("home.introText2")}</p>
-          <div className="mt-5 flex flex-wrap items-center gap-3 text-sm">
-            <Link to="/shop" className="font-semibold text-leaf-700 hover:text-leaf-900">{t("home.introShop")} <ArrowRight className="inline h-4 w-4" /></Link>
-            <Link to="/about" className="font-semibold text-leaf-700 hover:text-leaf-900">{t("nav.about")}</Link>
-            <Link to="/contact" className="font-semibold text-leaf-700 hover:text-leaf-900">{t("nav.contact")}</Link>
-          </div>
-        </div>
         <SectionHeading
           eyebrow={lang === "bn" ? "আমাদের প্যান্ট্রি" : "Our pantry"}
           title={t("home.categories")}
