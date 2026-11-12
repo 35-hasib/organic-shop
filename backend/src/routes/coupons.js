@@ -90,7 +90,7 @@ const schema = z.object({
 
 function normalize(data) {
   const out = { ...data };
-  out.code = data.code.trim().toUpperCase();
+  if (data.code !== undefined) out.code = data.code.trim().toUpperCase();
   if (data.value !== undefined) out.value = money(data.value);
   if (data.minOrderAmount !== undefined) out.minOrderAmount = money(data.minOrderAmount);
   if (data.maxDiscount !== undefined) out.maxDiscount = data.maxDiscount === null ? null : money(data.maxDiscount);
