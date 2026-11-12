@@ -20,13 +20,9 @@ export function ProductCard({ product }: { product: Product }) {
   const off = discountPercent(product.price, product.salePrice);
 
   const add = async () => {
-    if (!user) {
-      navigate(`/login?redirect=${encodeURIComponent(`/product/${product.slug}`)}`);
-      return;
-    }
     setAdding(true);
     try {
-      await addToCart(product.id, 1);
+      await addToCart(product, 1);
       show(t("product.added"));
     } catch (error) {
       show(errorMessage(error), "error");

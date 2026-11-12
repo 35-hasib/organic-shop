@@ -200,7 +200,7 @@ model Coupon {
 model Order {
   id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   orderNumber       String         @unique @map("order_number")
-  userId            String         @map("user_id") @db.Uuid
+  userId            String?        @map("user_id") @db.Uuid
   status            OrderStatus    @default(PENDING)
   paymentMethod     String         @default("COD") @map("payment_method")
   paymentStatus     PaymentStatus  @default(UNPAID) @map("payment_status")
@@ -224,7 +224,7 @@ model Order {
   cancelledAt       DateTime?      @map("cancelled_at") @db.Timestamptz(6)
   deliveredAt       DateTime?      @map("delivered_at") @db.Timestamptz(6)
 
-  user          User                  @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user          User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
   coupon        Coupon?               @relation(fields: [couponId], references: [id], onDelete: SetNull)
   items         OrderItem[]
   statusHistory OrderStatusHistory[]

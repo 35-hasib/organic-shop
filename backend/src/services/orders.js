@@ -45,6 +45,128 @@ async function restoreStock(tx, order, type, note, userId) {
   }
 }
 
+async function persistOrder(tx, {
+  userId,
+  idempotencyKey,
+  paymentMethod,
+  note,
+  shipping,
+  area,
+  productRows,
+  couponCode,
+  clearCartForUser,
+  actorId,
+}) {
+  const items = [];
+  for (const row of productRows) {
+    const product = row.product;
+    if (!product.published) throw new HttpError(409, `${product.name} is no longer available`);
+    if (row.quantity < 1) throw new HttpError(400, "Invalid cart quantity");
+    if (product.stock < row.quantity) {
+      throw new HttpError(409, `Only ${product.stock} ${product.unit} of ${product.name} is available`);
+    }
+    const unitPrice = product.salePrice !== null ? parseMoney(product.salePrice) : parseMoney(product.price);
+    const lineTotal = unitPrice.mul(row.quantity);
+    items.push({
+      product,
+      quantity: row.quantity,
+      unitPrice,
+      lineTotal,
+    });
+  }
+
+  const subtotal = items.reduce((sum, item) => sum.plus(item.lineTotal), parseMoney(0));
+  const couponResult = await validateCoupon(tx, {
+    code: couponCode,
+    userId,
+    subtotal,
+  });
+  const discount = couponResult ? couponResult.discount : parseMoney(0);
+  const discountedSubtotal = subtotal.minus(discount);
+  const freeThreshold = area.freeDeliveryThreshold ? parseMoney(area.freeDeliveryThreshold) : null;
+  const deliveryFee = freeThreshold && discountedSubtotal.gte(freeThreshold) ? parseMoney(0) : parseMoney(area.charge);
+  const total = discountedSubtotal.plus(deliveryFee);
+
+  for (const item of items) {
+    const reserved = await tx.product.updateMany({
+      where: { id: item.product.id, published: true, stock: { gte: item.quantity } },
+      data: { stock: { decrement: item.quantity } },
+    });
+    if (reserved.count !== 1) {
+      throw new HttpError(409, `Insufficient stock for ${item.product.name}`);
+    }
+  }
+
+  const order = await tx.order.create({
+    data: {
+      orderNumber: orderNumber(),
+      userId,
+      paymentMethod: paymentMethod || "COD",
+      paymentStatus: "UNPAID",
+      subtotal: money(subtotal),
+      discount: money(discount),
+      deliveryFee: money(deliveryFee),
+      total: money(total),
+      couponId: couponResult?.coupon.id || null,
+      couponCode: couponResult?.coupon.code || null,
+      shippingName: shipping.name,
+      shippingPhone: shipping.phone,
+      shippingDivision: shipping.division,
+      shippingDistrict: shipping.district,
+      shippingArea: shipping.area,
+      shippingAddress: shipping.addressLine,
+      shippingPostalCode: shipping.postalCode || null,
+      note: note || null,
+      idempotencyKey,
+      items: {
+        create: items.map((item) => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          productNameBn: item.product.nameBn,
+          unit: item.product.unit,
+          price: money(item.product.price),
+          salePrice: item.product.salePrice === null ? null : money(item.product.salePrice),
+          quantity: item.quantity,
+          lineTotal: money(item.lineTotal),
+          imageUrl: item.product.images[0] || null,
+        })),
+      },
+      statusHistory: {
+        create: { status: "PENDING", note: "Order placed", changedBy: actorId || null },
+      },
+    },
+    include: { items: true },
+  });
+
+  if (couponResult) await consumeCoupon(tx, couponResult.coupon.id);
+
+  await tx.inventoryMovement.createMany({
+    data: items.map((item) => ({
+      productId: item.product.id,
+      type: "SALE",
+      quantity: -item.quantity,
+      referenceType: "order",
+      referenceId: order.id,
+      note: `Order ${order.orderNumber}`,
+      createdBy: actorId || null,
+    })),
+  });
+
+  if (clearCartForUser) await tx.cartItem.deleteMany({ where: { userId: clearCartForUser } });
+  if (userId) {
+    await tx.notification.create({
+      data: {
+        userId,
+        orderId: order.id,
+        title: "Order placed",
+        message: `Your order ${order.orderNumber} has been placed successfully.`,
+      },
+    });
+  }
+
+  return order;
+}
+
 export async function createOrder(userId, input) {
   const existing = await prisma.order.findUnique({
     where: { idempotencyKey: input.idempotencyKey },
@@ -73,113 +195,119 @@ export async function createOrder(userId, input) {
     });
     if (!area) throw new HttpError(400, "Select a valid delivery area");
 
-    const items = [];
-    for (const row of cart) {
-      const product = row.product;
-      if (!product.published) throw new HttpError(409, `${product.name} is no longer available`);
-      if (row.quantity < 1) throw new HttpError(400, "Invalid cart quantity");
-      if (product.stock < row.quantity) {
-        throw new HttpError(409, `Only ${product.stock} ${product.unit} of ${product.name} is available`);
-      }
-      const unitPrice = product.salePrice !== null ? parseMoney(product.salePrice) : parseMoney(product.price);
-      const lineTotal = unitPrice.mul(row.quantity);
-      items.push({
-        product,
-        quantity: row.quantity,
-        unitPrice,
-        lineTotal,
-      });
-    }
-
-    const subtotal = items.reduce((sum, item) => sum.plus(item.lineTotal), parseMoney(0));
-    const couponResult = await validateCoupon(tx, {
-      code: input.couponCode,
+    return persistOrder(tx, {
       userId,
-      subtotal,
+      idempotencyKey: input.idempotencyKey,
+      paymentMethod: input.paymentMethod,
+      note: input.note,
+      shipping: {
+        name: address.recipientName,
+        phone: address.phone,
+        division: address.division,
+        district: address.district,
+        area: address.area,
+        addressLine: address.addressLine,
+        postalCode: address.postalCode,
+      },
+      area,
+      productRows: cart.map((row) => ({ product: row.product, quantity: row.quantity })),
+      couponCode: input.couponCode,
+      clearCartForUser: userId,
+      actorId: userId,
     });
-    const discount = couponResult ? couponResult.discount : parseMoney(0);
-    const discountedSubtotal = subtotal.minus(discount);
-    const freeThreshold = area.freeDeliveryThreshold ? parseMoney(area.freeDeliveryThreshold) : null;
-    const deliveryFee = freeThreshold && discountedSubtotal.gte(freeThreshold) ? parseMoney(0) : parseMoney(area.charge);
-    const total = discountedSubtotal.plus(deliveryFee);
+  });
+}
 
-    for (const item of items) {
-      const reserved = await tx.product.updateMany({
-        where: { id: item.product.id, published: true, stock: { gte: item.quantity } },
-        data: { stock: { decrement: item.quantity } },
-      });
-      if (reserved.count !== 1) {
-        throw new HttpError(409, `Insufficient stock for ${item.product.name}`);
-      }
+export async function createGuestOrder(input) {
+  const existing = await prisma.order.findUnique({
+    where: { idempotencyKey: input.idempotencyKey },
+    include: { items: true },
+  });
+  if (existing) {
+    if (existing.shippingPhone !== input.customerPhone) throw new HttpError(409, "Duplicate request key");
+    return existing;
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const area = await tx.deliveryArea.findFirst({
+      where: { id: input.deliveryAreaId, active: true },
+    });
+    if (!area) throw new HttpError(400, "Select a valid delivery area");
+
+    const quantityByProduct = new Map();
+    for (const item of input.items) {
+      quantityByProduct.set(item.productId, (quantityByProduct.get(item.productId) || 0) + item.quantity);
+    }
+    const products = await tx.product.findMany({
+      where: { id: { in: [...quantityByProduct.keys()] } },
+    });
+    const productMap = new Map(products.map((product) => [product.id, product]));
+    const productRows = [];
+    for (const [productId, quantity] of quantityByProduct) {
+      const product = productMap.get(productId);
+      if (!product) throw new HttpError(409, "One or more products are no longer available");
+      productRows.push({ product, quantity });
     }
 
-    const order = await tx.order.create({
-      data: {
-        orderNumber: orderNumber(),
-        userId,
-        paymentMethod: input.paymentMethod || "COD",
-        paymentStatus: "UNPAID",
-        subtotal: money(subtotal),
-        discount: money(discount),
-        deliveryFee: money(deliveryFee),
-        total: money(total),
-        couponId: couponResult?.coupon.id || null,
-        couponCode: couponResult?.coupon.code || null,
-        shippingName: address.recipientName,
-        shippingPhone: address.phone,
-        shippingDivision: address.division,
-        shippingDistrict: address.district,
-        shippingArea: address.area,
-        shippingAddress: address.addressLine,
-        shippingPostalCode: address.postalCode,
-        note: input.note || null,
-        idempotencyKey: input.idempotencyKey,
-        items: {
-          create: items.map((item) => ({
-            productId: item.product.id,
-            productName: item.product.name,
-            productNameBn: item.product.nameBn,
-            unit: item.product.unit,
-            price: money(item.product.price),
-            salePrice: item.product.salePrice === null ? null : money(item.product.salePrice),
-            quantity: item.quantity,
-            lineTotal: money(item.lineTotal),
-            imageUrl: item.product.images[0] || null,
-          })),
-        },
-        statusHistory: {
-          create: { status: "PENDING", note: "Order placed", changedBy: userId },
-        },
+    return persistOrder(tx, {
+      userId: null,
+      idempotencyKey: input.idempotencyKey,
+      paymentMethod: input.paymentMethod,
+      note: input.note,
+      shipping: {
+        name: input.customerName,
+        phone: input.customerPhone,
+        division: area.division,
+        district: input.city,
+        area: input.area,
+        addressLine: input.address,
       },
-      include: { items: true },
+      area,
+      productRows,
+      couponCode: input.couponCode,
+      clearCartForUser: null,
+      actorId: null,
     });
-
-    if (couponResult) await consumeCoupon(tx, couponResult.coupon.id);
-
-    await tx.inventoryMovement.createMany({
-      data: items.map((item) => ({
-        productId: item.product.id,
-        type: "SALE",
-        quantity: -item.quantity,
-        referenceType: "order",
-        referenceId: order.id,
-        note: `Order ${order.orderNumber}`,
-        createdBy: userId,
-      })),
-    });
-
-    await tx.cartItem.deleteMany({ where: { userId } });
-    await tx.notification.create({
-      data: {
-        userId,
-        orderId: order.id,
-        title: "Order placed",
-        message: `Your order ${order.orderNumber} has been placed successfully.`,
-      },
-    });
-
-    return order;
   });
+}
+
+export async function findGuestCustomer(phone) {
+  const order = await prisma.order.findFirst({
+    where: { shippingPhone: phone },
+    orderBy: { createdAt: "desc" },
+    select: {
+      shippingName: true,
+      shippingPhone: true,
+      shippingAddress: true,
+      shippingDistrict: true,
+      shippingArea: true,
+      shippingDivision: true,
+      note: true,
+    },
+  });
+  if (!order) return null;
+  return {
+    name: order.shippingName,
+    phone: order.shippingPhone,
+    address: order.shippingAddress,
+    city: order.shippingDistrict,
+    area: order.shippingArea,
+    insideDhaka: order.shippingDivision.toLowerCase() === "dhaka",
+    note: order.note || "",
+  };
+}
+
+export async function getGuestOrder(id, phone) {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) throw new HttpError(404, "Order not found");
+  const order = await prisma.order.findFirst({
+    where: { id, shippingPhone: phone },
+    include: {
+      items: true,
+      statusHistory: { orderBy: { createdAt: "asc" } },
+    },
+  });
+  if (!order) throw new HttpError(404, "Order not found");
+  return order;
 }
 
 export async function changeOrderStatus({ orderId, status, note, actorId }) {
@@ -218,14 +346,16 @@ export async function changeOrderStatus({ orderId, status, note, actorId }) {
     await tx.orderStatusHistory.create({
       data: { orderId: order.id, status, note: note || null, changedBy: actorId },
     });
-    await tx.notification.create({
-      data: {
-        userId: order.userId,
-        orderId: order.id,
-        title: `Order ${status.toLowerCase()}`,
-        message: `Your order ${order.orderNumber} is now ${status.toLowerCase()}.`,
-      },
-    });
+    if (order.userId) {
+      await tx.notification.create({
+        data: {
+          userId: order.userId,
+          orderId: order.id,
+          title: `Order ${status.toLowerCase()}`,
+          message: `Your order ${order.orderNumber} is now ${status.toLowerCase()}.`,
+        },
+      });
+    }
 
     return updated;
   });
@@ -293,14 +423,16 @@ export async function resolveOrderRequest({ requestId, status, adminNote, adminI
             changedBy: adminId,
           },
         });
-        await tx.notification.create({
-          data: {
-            userId: order.userId,
-            orderId: order.id,
-            title: "Return approved",
-            message: `Your return request for ${order.orderNumber} has been approved.`,
-          },
-        });
+        if (order.userId) {
+          await tx.notification.create({
+            data: {
+              userId: order.userId,
+              orderId: order.id,
+              title: "Return approved",
+              message: `Your return request for ${order.orderNumber} has been approved.`,
+            },
+          });
+        }
       }
     }
     return updated;

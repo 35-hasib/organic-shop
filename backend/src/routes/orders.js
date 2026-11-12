@@ -7,12 +7,62 @@ import { serializeDecimals } from "../lib/serialize.js";
 import {
   cancelOrderByCustomer,
   changeOrderStatus,
+  createGuestOrder,
   createOrder,
   createOrderRequest,
+  findGuestCustomer,
+  getGuestOrder,
   resolveOrderRequest,
 } from "../services/orders.js";
 
 const router = Router();
+
+const guestCheckoutSchema = z.object({
+  customerName: z.string().trim().min(2).max(80),
+  customerPhone: z.string().trim().min(6).max(20),
+  address: z.string().trim().min(5).max(500),
+  city: z.string().trim().min(1).max(60),
+  area: z.string().trim().min(1).max(60),
+  deliveryAreaId: z.string().uuid(),
+  note: z.string().max(1000).nullable().optional(),
+  couponCode: z.string().max(30).nullable().optional(),
+  paymentMethod: z.enum(["COD"]).default("COD"),
+  items: z
+    .array(z.object({ productId: z.string().uuid(), quantity: z.coerce.number().int().min(1).max(99) }))
+    .min(1)
+    .max(100),
+  idempotencyKey: z.string().min(8).max(100),
+});
+
+router.post(
+  "/guest",
+  asyncHandler(async (req, res) => {
+    const parsed = guestCheckoutSchema.safeParse(req.body);
+    if (!parsed.success) throw new HttpError(400, "Invalid checkout details", parsed.error.flatten());
+    const order = await createGuestOrder(parsed.data);
+    res.status(201).json({ order: serializeDecimals(order) });
+  })
+);
+
+router.get(
+  "/guest/lookup",
+  asyncHandler(async (req, res) => {
+    const phone = String(req.query.phone || "").trim();
+    if (phone.length < 6) throw new HttpError(400, "Mobile number is required");
+    res.json({ customer: await findGuestCustomer(phone) });
+  })
+);
+
+router.get(
+  "/guest/:id",
+  asyncHandler(async (req, res) => {
+    const phone = String(req.query.phone || "").trim();
+    if (!phone) throw new HttpError(400, "Mobile number is required");
+    const order = await getGuestOrder(req.params.id, phone);
+    res.json({ order: serializeDecimals(order) });
+  })
+);
+
 router.use(authRequired);
 
 const checkoutSchema = z.object({

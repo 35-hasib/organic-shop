@@ -6,6 +6,7 @@ import { Shop } from "./pages/Shop";
 import { ProductDetail } from "./pages/ProductDetail";
 import { Cart } from "./pages/Cart";
 import { Checkout } from "./pages/Checkout";
+import { GuestOrderConfirmation } from "./pages/GuestOrderConfirmation";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { AccountLayout } from "./pages/AccountLayout";
@@ -37,14 +38,8 @@ export default function App() {
           <Route path="category/:slug" element={<Shop />} />
           <Route path="product/:slug" element={<ProductDetail />} />
           <Route path="cart" element={<Cart />} />
-          <Route
-            path="checkout"
-            element={
-              <ProtectedRoute>
-                <Checkout />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="checkout" element={<Checkout />} />
+          <Route path="order-confirmed/:id" element={<GuestOrderConfirmation />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />
           <Route path="account" element={<Account />}>

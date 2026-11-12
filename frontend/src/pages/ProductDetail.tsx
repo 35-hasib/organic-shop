@@ -75,13 +75,9 @@ export function ProductDetail() {
 
   const add = async () => {
     if (!product) return;
-    if (!user) {
-      navigate(`/login?redirect=${encodeURIComponent(`/product/${product.slug}`)}`);
-      return;
-    }
     setAdding(true);
     try {
-      await addToCart(product.id, quantity);
+      await addToCart(product, quantity);
       show(t("product.added"));
     } catch (err) {
       show(errorMessage(err), "error");

@@ -252,8 +252,8 @@ router.get(
       orders.map((order) => ({
         orderNumber: order.orderNumber,
         date: order.createdAt.toISOString(),
-        customer: order.user.name,
-        email: order.user.email || "",
+        customer: order.user?.name || order.shippingName,
+        email: order.user?.email || "",
         phone: order.shippingPhone,
         status: order.status,
         paymentMethod: order.paymentMethod,

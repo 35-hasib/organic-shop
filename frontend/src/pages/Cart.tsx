@@ -2,7 +2,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, ShoppingBag, Trash2 } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useShop } from "../context/ShopContext";
-import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { money } from "../lib/format";
 import { errorMessage } from "../lib/api";
@@ -13,7 +12,6 @@ import { QuantityInput } from "../components/QuantityInput";
 export function Cart() {
   const { t, pick, lang } = useLanguage();
   const { cart, updateCart, removeItem, cartLoading } = useShop();
-  const { user } = useAuth();
   const { show } = useToast();
   const navigate = useNavigate();
 
@@ -33,20 +31,6 @@ export function Cart() {
       show(errorMessage(error), "error");
     }
   };
-
-  if (!user) {
-    return (
-      <div>
-        <PageHeader title={t("cart.title")} />
-        <div className="mx-auto max-w-3xl px-4 py-16">
-          <EmptyState
-            title={t("cart.login")}
-            action={<Link to="/login?redirect=/cart" className="btn-primary">{t("nav.login")}</Link>}
-          />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div>

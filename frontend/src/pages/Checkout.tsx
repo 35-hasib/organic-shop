@@ -4,14 +4,22 @@ import { Check, MapPin, Tag, Truck } from "lucide-react";
 import { api, errorMessage } from "../lib/api";
 import type { Address, DeliveryArea, Order } from "../types";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
 import { useShop } from "../context/ShopContext";
 import { useToast } from "../context/ToastContext";
 import { idempotencyKey, money } from "../lib/format";
 import { PageHeader } from "../components/PageHeader";
 import { AddressForm } from "../components/AddressForm";
 import { EmptyState } from "../components/Loading";
+import { GuestCheckout } from "./GuestCheckout";
 
 export function Checkout() {
+  const { user } = useAuth();
+  if (user?.role === "CUSTOMER") return <MemberCheckout />;
+  return <GuestCheckout />;
+}
+
+function MemberCheckout() {
   const { t, lang, pick } = useLanguage();
   const { cart, refreshCart } = useShop();
   const { show } = useToast();

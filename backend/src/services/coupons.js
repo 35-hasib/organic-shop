@@ -15,11 +15,13 @@ export async function validateCoupon(tx, { code, userId, subtotal }) {
   if (parseMoney(subtotal).lt(parseMoney(coupon.minOrderAmount))) {
     throw new HttpError(400, `Minimum order for this coupon is ৳${money(coupon.minOrderAmount)}`);
   }
-  const customerUses = await tx.order.count({
-    where: { userId, couponId: coupon.id, status: { not: "CANCELLED" } },
-  });
-  if (customerUses >= coupon.perCustomerLimit) {
-    throw new HttpError(400, "You have already used this coupon");
+  if (userId) {
+    const customerUses = await tx.order.count({
+      where: { userId, couponId: coupon.id, status: { not: "CANCELLED" } },
+    });
+    if (customerUses >= coupon.perCustomerLimit) {
+      throw new HttpError(400, "You have already used this coupon");
+    }
   }
 
   let discount = parseMoney(0);
